@@ -85,13 +85,13 @@ class Agent_BlackJack:
                 proms.append(1)
             else:
                 proms.append(0)
-            if(i%10000 == 0):
+            if(i%100_000 == 0):
                 print(np.mean(proms))
                 proms = [0]
 
 
 
 if __name__ == "__main__":
-    agent = Agent_BlackJack(0.9 , 0.0 , 0.0000001)
+    agent = Agent_BlackJack(1.0 , 0.0 , 0.0000001)
     agent.train(1_000_000)
 
