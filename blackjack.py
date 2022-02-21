@@ -1,4 +1,5 @@
 import gym
+from tqdm import tqdm
 from pprint import pprint
 import random
 from time import sleep
@@ -20,8 +21,6 @@ class Agent_BlackJack:
         #print(self.env.action_space)
         observation_space = self.env.observation_space
         action_space = self.env.action_space
-        print(observation_space)
-        print(action_space)
         states = [i for i in range(32)]
         cards = [i for i in range(11)]
         actions = [0,1]
@@ -31,26 +30,23 @@ class Agent_BlackJack:
             for card in cards:
                 self.all_states[(state,card)] = cont
                 cont +=1
-        pprint(self.all_states)
-        dim = (len(self.all_states.values()), len([0,1]) )
+        dim = (len(self.all_states.values()) +1 , len([0,1]) )
         self.Q = np.random.uniform(-2,0 , dim)
-        print(self.Q)
 
         
     def search_in_q(self,state,card):
         val = self.all_states[(state,card)]
-        print(val)
         return(val)
         
     def get_action(self, state,card):
         choice = np.random.uniform(0,1)
         if(choice > self.epsilon):
             act_in_table  = np.argmax(self.search_in_q(state, card))
-            action = np.argmax(self.Q[act_in_table])
+            action =np.argmax(self.Q[act_in_table])
         else:
             action = random.choice([0,1])
             self.epsilon = self.epsilon*0.9
-        print(f"for {state} and {card} selected action {action}")
+        #print(f"for {state} and {card} selected action {action}")
         return(action)
 
     def get_max_future_q(self,state,card):
@@ -62,28 +58,40 @@ class Agent_BlackJack:
         done = False
         new_state = self.env.reset()
         while(not done):
-            self.env.render()
+            #self.env.render()
             action = self.get_action(new_state[0] , new_state[1])
             new_state, reward, done, info = self.env.step(action)
-            print(f"new state = {new_state}")
-            print(f"reward = {reward}")
-            print(f"done = {done}")
-            print(f"info = {info}")
             """
             Here i have to update Q matrix applying Q learning formula
             """
             max_future_q = self.get_max_future_q(new_state[0],new_state[1])
-            new_Q = (1 - self.LEARNING_RATE ) * self.Q + self.LEARNING_RATE * (reward + self.DISCOUNT + max_future_q )
-            print(new_Q)
+            #new_Q = (1 - self.LEARNING_RATE ) * self.Q + self.LEARNING_RATE * (reward + self.DISCOUNT + max_future_q )
+            #print(new_Q)
             #self.Q[self.search_in_q(new_state[0] , new_state[1])] = new_Q
-            print("updated Q")
+            val_in_table = self.search_in_q(new_state[0] , new_state[1])
+            ant = self.Q[val_in_table]
+            new_q_value = (1-self.LEARNING_RATE) * ant  +  self.LEARNING_RATE*(reward + self.DISCOUNT*max_future_q)
+            self.Q[val_in_table] = new_q_value
+            if(new_state[2]):
+                return(True)
+        return False
+                #sleep(3)
 
     def train(self,n_epochs):
-        for _ in n_epochs:
-            self.play()
+        proms = [0]
+        for i in tqdm(range(n_epochs)):
+            ganamos = self.play()
+            if(ganamos):
+                proms.append(1)
+            else:
+                proms.append(0)
+            if(i%10000 == 0):
+                print(np.mean(proms))
+                proms = [0]
+
 
 
 if __name__ == "__main__":
-    agent = Agent_BlackJack(0.9 , 0.1 , 0.1)
-    agent.play()
+    agent = Agent_BlackJack(0.9 , 0.0 , 0.0000001)
+    agent.train(1_000_000)
 
